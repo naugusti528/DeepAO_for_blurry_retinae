@@ -1,26 +1,28 @@
 # DeepAO_for_blurry_retinae
-I use a U-Net architecture deep neural network to implement deconvolution on synthetically blurred retinal images.
+An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture.
+
+This project investigates whether a convolutional neural network can reconstruct sharp retinal fundus images from synthetically blurred inputs. If it can, we can automate and improve disease detection effectively.
+
+This is a work in progress.
 
 ## Background:
-Retinal image of an eye is blurry due to the eye’s vision issues (nearsightedness, farsightedness, some other kind of myopia)
+Retinal image of an eye is blurry due to the eye’s vision issues (nearsightedness, farsightedness, some other kind of myopia) or things like patients moving or a blurry camera. Poor image quality can reduce diagnostic accuracy and may require patients to undergo repeat imaging. This project explores whether deep learning can automatically recover sharp retinal images from blurred observations.
 
 ## Objective:
-Take clean retinal images, artificially blur them by applying Gaussian noise, and then apply what’s called Deep-AO deblurring,
-where we treat blind deconvolution as an image-to-image (I2I) translation task.
+To train a deep neural network capable of learning the inverse mapping from blurred retinal images to their corresponding sharp images. Instead of manually estimating the source of blur, this project formulates blind deconvolution as an image-to-image translation problem using supervised learning.
 
 ## Blind deconvolution:
 We can do deconvolution while being blind to the cause of the blur.
 I2I translation: mapping input images to desired output images (both are given)
 
-## Architecture:
-I use a U-Net deep learning architecture deep neural network to implement deconvolution on synthetically blurred retinal images.
+## Model Architecture:
+I use a U-Net deep learning architecture to implement deconvolution on synthetically blurred retinal images.
 U-Net – encoder→bottleneck→decoder→[skip connections]
 Type of learning: Supervised learning - direct learning
 Loss functions: MSE (standard) + Structural Similarity Index (SSIM) to mimic human vision
 
 ## Core Logic:
-We have y = k*x + n, where x is the ground truth, y is the input blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
-
+We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
 
 ## Data Specifications
 The Kaggle dataset used for this project is 22 GB and is excluded via the .gitignore to maintain a lightweight and fast codebase.
