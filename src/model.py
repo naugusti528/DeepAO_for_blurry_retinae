@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class DoubleConv(nn.Module):
     """(Convolution => BatchNorm => ReLU) * 2"""
@@ -15,43 +16,7 @@ class DoubleConv(nn.Module):
         )
 
     def forward(self, x):
-        import torch.nn.functional as F
-        
-        # Encoder forward pass with feature preservation for skip connections
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        
-        # Bottleneck
-        b = self.bottleneck(x4)
-        
-        # Decoder forward pass with dynamic padding to match sizes exactly
-        x = self.up1(b)
-        diffY = x4.size()[2] - x.size()[2]
-        diffX = x4.size()[3] - x.size()[3]
-        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
-        x = self.conv1(torch.cat([x, x4], dim=1))
-        
-        x = self.up2(x)
-        diffY = x3.size()[2] - x.size()[2]
-        diffX = x3.size()[3] - x.size()[3]
-        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
-        x = self.conv2(torch.cat([x, x3], dim=1))
-        
-        x = self.up3(x)
-        diffY = x2.size()[2] - x.size()[2]
-        diffX = x2.size()[3] - x.size()[3]
-        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
-        x = self.conv3(torch.cat([x, x2], dim=1))
-        
-        x = self.up4(x)
-        diffY = x1.size()[2] - x.size()[2]
-        diffX = x1.size()[3] - x.size()[3]
-        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
-        x = self.conv4(torch.cat([x, x1], dim=1))
-        
-        return self.sigmoid(self.outc(x))
+        return self.double_conv(x)
 
 class UNet(nn.Module):
     def __init__(self, in_channels=1, out_channels=1):
@@ -92,17 +57,29 @@ class UNet(nn.Module):
         # Bottleneck
         b = self.bottleneck(x4)
         
-        # Decoder forward pass with concatenated skip layers
+        # Decoder forward pass with dynamic padding
         x = self.up1(b)
+    diffY = x4.size()[2] - x.size()[2]
+    diffX = x4.size()[3] - x.size()[3]
+    x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv1(torch.cat([x, x4], dim=1))
         
         x = self.up2(x)
+    diffY = x3.size()[2] - x.size()[2]
+        diffX = x3.size()[3] - x.size()[3]
+    x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv2(torch.cat([x, x3], dim=1))
         
         x = self.up3(x)
+    diffY = x2.size()[2] - x.size()[2]
+        diffX = x2.size()[3] - x.size()[3]
+        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv3(torch.cat([x, x2], dim=1))
         
         x = self.up4(x)
+    diffY = x1.size()[2] - x.size()[2]
+        diffX = x1.size()[3] - x.size()[3]
+        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv4(torch.cat([x, x1], dim=1))
         
         return self.sigmoid(self.outc(x))
