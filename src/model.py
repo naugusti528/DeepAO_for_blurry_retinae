@@ -32,18 +32,18 @@ class UNet(nn.Module):
 
         # 3. Decoder (Upsampling path + skip connections)
         self.up1 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
-        self.conv1 = DoubleConv(1024, 512)  # 512 (from up1) + 512 (from skip connection)
+        self.conv1 = DoubleConv(1024, 512)
 
         self.up2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.conv2 = DoubleConv(512, 256)   # 256 (from up2) + 256 (from skip connection)
+        self.conv2 = DoubleConv(512, 256)
 
         self.up3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.conv3 = DoubleConv(256, 128)   # 128 (from up3) + 128 (from skip connection)
+        self.conv3 = DoubleConv(256, 128)
 
         self.up4 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.conv4 = DoubleConv(128, 64)     # 64 (from up4) + 64 (from skip connection)
+        self.conv4 = DoubleConv(128, 64)
 
-        # Final output convolution layer mapping back to 1 channel with a Sigmoid (0.0 to 1.0 range)
+        # Final output layer mapping back to grayscale (1 channel)
         self.outc = nn.Conv2d(64, out_channels, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
@@ -57,27 +57,27 @@ class UNet(nn.Module):
         # Bottleneck
         b = self.bottleneck(x4)
         
-        # Decoder forward pass with dynamic padding
+        # Decoder forward pass with explicit height/width difference padding
         x = self.up1(b)
-    diffY = x4.size()[2] - x.size()[2]
-    diffX = x4.size()[3] - x.size()[3]
-    x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        diffY = x4.size()[2] - x.size()[2]
+        diffX = x4.size()[3] - x.size()[3]
+        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv1(torch.cat([x, x4], dim=1))
         
         x = self.up2(x)
-    diffY = x3.size()[2] - x.size()[2]
+        diffY = x3.size()[2] - x.size()[2]
         diffX = x3.size()[3] - x.size()[3]
-    x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv2(torch.cat([x, x3], dim=1))
         
         x = self.up3(x)
-    diffY = x2.size()[2] - x.size()[2]
+        diffY = x2.size()[2] - x.size()[2]
         diffX = x2.size()[3] - x.size()[3]
         x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv3(torch.cat([x, x2], dim=1))
         
         x = self.up4(x)
-    diffY = x1.size()[2] - x.size()[2]
+        diffY = x1.size()[2] - x.size()[2]
         diffX = x1.size()[3] - x.size()[3]
         x = F.pad(x, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
         x = self.conv4(torch.cat([x, x1], dim=1))
@@ -85,18 +85,18 @@ class UNet(nn.Module):
         return self.sigmoid(self.outc(x))
 
 if __name__ == '__main__':
-    # Test script execution to verify network shape metrics
     print("Testing U-Net architecture structural compilation...")
+    
+    # Initialize the actual UNet model class cleanly
     model = UNet(in_channels=1, out_channels=1)
     
-    # Create a synthetic tensor mimicking your exact batch data shape [2, 1, 600, 600]
+    # Simulate a tensor mimicking your exact dataloader layout shape (Batch=2, Channel=1, 600x600)
     test_input = torch.randn(2, 1, 600, 600)
     
     try:
         test_output = model(test_input)
         print("Model compilation verification success!")
         print(f"Input Shape:  {test_input.shape}")
-        print(f"Output Shape: {test_output.shape}")  # Should match perfectly
+        print(f"Output Shape: {test_output.shape}")  
     except Exception as e:
         print(f"Model Verification Failed: {e}")
-
