@@ -44,12 +44,23 @@ def train_model():
     
     # 4. Instantiate the corrected U-Net model and map to device memory
     model = UNet(in_channels=1, out_channels=1).to(device)
+
+    #adding these lines here after 5-epoch training on 115K images.
+    #setting a checkpoint to prevent relearning of already learned features.
+    checkpoint_path = 'models/unet_deblur_epoch_5.pth'
+    if os.path.exists(checkpoint_path):
+        print(f"Loading existing weights from {checkpoint_path} to continue fine-tuning...")
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     
     # 5. Define optimization parameters
-    criterion = HybridLoss(ssim_weight=0.5)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     
-    epochs = 5  # Start with a short run to confirm the loops work
+    criterion = HybridLoss(ssim_weight=0.85)
+    #prior to initial training on 115K images, the ssim weight was 0.5.
+    #to improve deblurring on more minute features like blood vessels and clarity of optic disc
+
+    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+    
+    epochs = 10  # originally 5, now changing to 10. learning rate above also reduced by 10x
     os.makedirs('models', exist_ok=True)
 
     print("\nStarting optimization loops...")
