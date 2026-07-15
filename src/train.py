@@ -2,99 +2,100 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.autograd import Variable
 import torch.nn.functional as F
+import torchvision.models as models
 
-# Import the architectural components we just finished building
 from src.model import UNet
 from src.data_loader import get_deblur_dataloader
 
-class HybridLoss(nn.Module):
-    def __init__(self, ssim_weight=0.5):
-        """
-        Combines Mean Squared Error (MSE) with structural similarity metrics
-        to better evaluate fine retinal features like blood vessels.
-        """
-        super(HybridLoss, self).__init__()
+class MedicalPerceptualLoss(nn.Module):
+    def __init__(self, feature_weight=0.85):
+        super(MedicalPerceptualLoss, self).__init__()
         self.mse = nn.MSELoss()
-        self.ssim_weight = ssim_weight
+        self.feature_weight = feature_weight
+        
+        vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+        self.features = vgg.features[:16].eval()
+        for param in self.features.parameters():
+            param.requires_grad = False
+            
+    def _to_rgb(self, x):
+        return torch.cat([x, x, x], dim=1)
 
     def forward(self, predicted, target):
-        mse_loss = self.mse(predicted, target)
+        spatial_loss = self.mse(predicted, target)
         
-        # Differentiable 1D structural metric approximation for stable training
-        # We want to maximize similarity, which means minimizing (1 - similarity)
-        loss_ssim = 1.0 - torch.mean(F.cosine_similarity(predicted, target, dim=2))
+        device = predicted.device
+        self.features = self.features.to(device)
         
-        return (1.0 - self.ssim_weight) * mse_loss + self.ssim_weight * loss_ssim
+        pred_rgb = self._to_rgb(predicted)
+        target_rgb = self._to_rgb(target)
+        
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
+        
+        pred_rgb = (pred_rgb - mean) / std
+        target_rgb = (target_rgb - mean) / std
+        
+        pred_features = self.features(pred_rgb)
+        target_features = self.features(target_rgb)
+        
+        perceptual_loss = self.mse(pred_features, target_features)
+        
+        return (1.0 - self.feature_weight) * spatial_loss + self.feature_weight * perceptual_loss
 
 def train_model():
-    print("Initializing U-Net training pipeline...")
+    print("Initializing U-Net training pipeline with Perceptual Loss...")
     
-    # 1. Device configuration (use Mac MPS acceleration if available, otherwise CPU)
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Using processing hardware: {device}")
 
-    # 2. Map dataset directory splits
     RAW_TRAIN = 'data/raw/extracted_images/augmented_resized_V2/train'
     PROCESSED_TRAIN = 'data/processed/train'
     
-    # 3. Initialize your verified PyTorch DataLoader
     train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=2, shuffle=True)
-    
-    # 4. Instantiate the corrected U-Net model and map to device memory
     model = UNet(in_channels=1, out_channels=1).to(device)
-
-    #adding these lines here after 5-epoch training on 115K images.
-    #setting a checkpoint to prevent relearning of already learned features.
-    checkpoint_path = 'models/unet_deblur_epoch_5.pth'
+    
+    checkpoint_path = 'models/unet_deblur_epoch_10.pth'
     if os.path.exists(checkpoint_path):
-        print(f"Loading existing weights from {checkpoint_path} to continue fine-tuning...")
+        print(f"Loading existing weights from {checkpoint_path} to begin fine-tuning...")
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    else:
+        print("No existing checkpoint found. Starting training from scratch.")
     
-    # 5. Define optimization parameters
-    
-    criterion = HybridLoss(ssim_weight=0.85)
-    #prior to initial training on 115K images, the ssim weight was 0.5.
-    #to improve deblurring on more minute features like blood vessels and clarity of optic disc
-
+    criterion = MedicalPerceptualLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-5)
     
-    epochs = 10  # originally 5, now changing to 10. learning rate above also reduced by 10x
+    epochs = 15  
     os.makedirs('models', exist_ok=True)
 
     print("\nStarting optimization loops...")
-    for epoch in range(epochs):
+    for epoch in range(10, epochs):
         model.train()
         running_loss = 0.0
         
         for batch_idx, (blurry_batch, clean_batch) in enumerate(train_loader):
-            # Move data tensors to current hardware acceleration unit
             inputs = blurry_batch.to(device)
             targets = clean_batch.to(device)
             
-            # Forward pass
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
             
-            # Backward optimization pass
             loss.backward()
             optimizer.step()
             
             running_loss += loss.item()
             
             if (batch_idx + 1) % 5 == 0:
-                print(f"Epoch [{epoch+1}/{epochs}] | Batch [{batch_idx+1}/{len(train_loader)}] | Hybrid Loss: {loss.item():.4f}")
+                print(f"Epoch [{epoch+1}/{epochs}] | Batch [{batch_idx+1}/{len(train_loader)}] | Perceptual Loss: {loss.item():.4f}")
         
         epoch_loss = running_loss / len(train_loader)
         print(f"==> Epoch [{epoch+1}/{epochs}] Completed | Average System Loss: {epoch_loss:.4f}\n")
         
-        # Save structural checkpoint weights file locally
         torch.save(model.state_dict(), f'models/unet_deblur_epoch_{epoch+1}.pth')
 
-    print("Training pipeline successfully finished! Weights saved to 'models/' directory.")
+    print("Training pipeline successfully finished! Perceptual weights saved to 'models/' directory.")
 
 if __name__ == '__main__':
     train_model()
-
