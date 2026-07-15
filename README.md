@@ -21,6 +21,10 @@ U-Net – encoder→bottleneck→decoder→[skip connections]
 Type of learning: Supervised learning - direct learning
 Loss functions: MSE (standard) + Structural Similarity Index (SSIM) to mimic human vision
 
+Update 7/15/26:
+After training the model for 5 epochs, updating weights, and then 10 epoch training, small features such as blood vessels are still very much left out. The optic disc and fovea are recovered decently, but training the model even on 1000 epochs will not make the blood vessels any clearer.
+The model architecture is U-Net with hybrid loss and encoder->bottleneck->decoder. As a further constraint, I'm imposing a pretrained VGG-16 network from Torchvision to target Perceptual/Feature Loss. This way, my model no longer ignores minute features and is still trained to deconvolve the more general, bigger features.
+
 ## Core Logic:
 We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
 
