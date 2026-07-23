@@ -46,11 +46,20 @@ class MedicalPerceptualLoss(nn.Module):
         target_edges = self._get_laplacian_edges(target)
         edge_loss = self.mse(pred_edges, target_edges)
         
-        pred_fft = torch.log(torch.abs(torch.fft.rfft2(predicted, dim=(-2, -1))) + 1e-8)
-        target_fft = torch.log(torch.abs(torch.fft.rfft2(target, dim=(-2, -1))) + 1e-8)
-        fourier_loss = self.mse(pred_fft, target_fft)
+        pred_fft = torch.fft.rfft2(predicted, dim=(-2, -1))
+        target_fft = torch.fft.rfft2(target, dim=(-2, -1))
+        
+        #power spectrum:
+        pred_power = (pred_fft.real ** 2) + (pred_fft.imag ** 2)
+        target_power = (target_fft.real ** 2) + (target_fft.imag ** 2)
+        
+        #log scale power spectrum:
+        pred_log_power = torch.log(pred_power + 1e-6)
+        target_log_power = torch.log(target_power + 1e-6)
 
-        return (self.feature_weight * perceptual_loss) + (self.edge_weight * edge_loss)
+        fourier_loss = self.mse(pred_log_power, target_log_power)
+
+        return (0.2 * perceptual_loss) + (0.5 * edge_loss) + (0.3 * fourier_loss)
         
 def train_model():
     print("Initializing U-Net training pipeline with Perceptual Loss...")
