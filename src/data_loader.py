@@ -37,6 +37,9 @@ class RetinalDeblurDataset(Dataset):
             
         clean_img = cv2.imread(raw_search[0], cv2.IMREAD_GRAYSCALE)
         
+        gaussian_blur = cv2.GaussianBlur(clean_img, (5,5), 1.0)
+        clean_sharpened = cv2.addWeighted(clean_img, 1.5, gaussian_blur, -0.5, 0)
+        
         # 3. Normalize values to 0.0 - 1.0 and convert arrays to PyTorch Tensors [C, H, W]
         blurry_tensor = torch.tensor(blurry_img, dtype=torch.float32).unsqueeze(0) / 255.0
         clean_tensor = torch.tensor(clean_img, dtype=torch.float32).unsqueeze(0) / 255.0
