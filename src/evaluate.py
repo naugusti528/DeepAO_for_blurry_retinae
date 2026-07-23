@@ -17,7 +17,7 @@ def evaluate_model():
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
     # 2. Path allocations matching project architecture layout
-    MODEL_WEIGHTS = 'models/unet_deblur_epoch_25.pth'
+    MODEL_WEIGHTS = 'models/unet_redo_edge_epoch_10.pth'
     RAW_TEST_DIR = 'data/raw/extracted_images/augmented_resized_V2/train'
     PROCESSED_TEST_DIR = 'data/processed/train'
     OUTPUT_RESULTS_DIR = 'data/evaluation_outputs'
