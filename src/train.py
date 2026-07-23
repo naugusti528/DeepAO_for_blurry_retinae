@@ -9,41 +9,49 @@ from src.model import UNet
 from src.data_loader import get_deblur_dataloader
 
 class MedicalPerceptualLoss(nn.Module):
-    def __init__(self, feature_weight=0.85):
+    def __init__(self, feature_weight=0.2, edge_weight=0.8):
         super(MedicalPerceptualLoss, self).__init__()
         self.mse = nn.MSELoss()
         self.feature_weight = feature_weight
+        self.edge_weight = edge_weight
         
         vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
-        self.features = vgg.features[:16].eval()
+        self.features = vgg.features.eval()
         for param in self.features.parameters():
             param.requires_grad = False
             
     def _to_rgb(self, x):
         return torch.cat([x, x, x], dim=1)
 
+    def _get_laplacian_edges(self,x):
+        #this will penalize blurry blood vessels and sharpen smaller features
+        kernel = torch.tensor([[0,1,0], [1,-4,1], [0,1,0]], dtype=torch.float32).view(1,1,3,3).to(x.device)
+        return F.conv2d(x, kernel, padding=1)
+
     def forward(self, predicted, target):
-        spatial_loss = self.mse(predicted, target)
-        
         device = predicted.device
         self.features = self.features.to(device)
         
-        pred_rgb = self._to_rgb(predicted)
-        target_rgb = self._to_rgb(target)
-        
-        mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(device)
-        std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(device)
-        
-        pred_rgb = (pred_rgb - mean) / std
-        target_rgb = (target_rgb - mean) / std
-        
-        pred_features = self.features(pred_rgb)
-        target_features = self.features(target_rgb)
-        
-        perceptual_loss = self.mse(pred_features, target_features)
-        
-        return (1.0 - self.feature_weight) * spatial_loss + self.feature_weight * perceptual_loss
+        pred_rgb = (self._to_rgb(predicted) - torch.tensor([0.485, 0.456, 0.406]).view(1,3,1,1).to(device)) / torch.tensor([0.229, 0.224, 0.225]).view(1,3,1,1).to(device)
+        target_rgb = (self._to_rgb(target) - torch.tensor([0.485, 0.456, 0.406]).view(1,3,1,1).to(device)) / torch.tensor([0.229, 0.224, 0.225]).view(1,3,1,1).to(device)
 
+        p_f1 = self.features[:5](pred_rgb)
+        t_f1 = self.features[:5](target_rgb)
+        p_f2 = self.features[:10](pred_rgb)
+        t_f2 = self.features[:10](target_rgb)
+        
+        perceptual_loss = self.mse(p_f1,t_f1) + self.mse(p_f2,t_f2)
+        
+        pred_edges = self._get_laplacian_edges(predicted)
+        target_edges = self._get_laplacian_edges(target)
+        edge_loss = self.mse(pred_edges, target_edges)
+        
+        pred_fft = torch.fft.rfft2(predicted, dim=(-2, -1))
+        target_fft = torch.fft.rfft2(target, dim=(-2, -1))
+        fourier_loss = self.mse(torch.abs(pred_fft), torch.abs(target_fft))
+
+        return (self.feature_weight * perceptual_loss) + (self.edge_weight * edge_loss)
+        
 def train_model():
     print("Initializing U-Net training pipeline with Perceptual Loss...")
     
@@ -56,21 +64,19 @@ def train_model():
     train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=2, shuffle=True)
     model = UNet(in_channels=1, out_channels=1).to(device)
     
-    checkpoint_path = 'models/unet_deblur_epoch_10.pth'
-    if os.path.exists(checkpoint_path):
-        print(f"Loading existing weights from {checkpoint_path} to begin fine-tuning...")
-        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    else:
-        print("No existing checkpoint found. Starting training from scratch.")
+    #checkpoint_path = 'models/unet_redo_edge_epoch_10.pth'
+    #if os.path.exists(checkpoint_path):
+    #    print(f"Loading existing weights from {checkpoint_path}...")
+    #    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    #else:
+    #    print(f"{checkpoint_path} not found")
     
     criterion = MedicalPerceptualLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     
-    epochs = 15  
-    os.makedirs('models', exist_ok=True)
-
+    epochs = 10
     print("\nStarting optimization loops...")
-    for epoch in range(10, epochs):
+    for epoch in range(1, epochs):
         model.train()
         running_loss = 0.0
         
@@ -93,7 +99,7 @@ def train_model():
         epoch_loss = running_loss / len(train_loader)
         print(f"==> Epoch [{epoch+1}/{epochs}] Completed | Average System Loss: {epoch_loss:.4f}\n")
         
-        torch.save(model.state_dict(), f'models/unet_deblur_epoch_{epoch+1}.pth')
+        torch.save(model.state_dict(), f'models/unet_redo_edge_epoch_{epoch}.pth')
 
     print("Training pipeline successfully finished! Perceptual weights saved to 'models/' directory.")
 
