@@ -64,12 +64,12 @@ def train_model():
     train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=2, shuffle=True)
     model = UNet(in_channels=1, out_channels=1).to(device)
     
-    #checkpoint_path = 'models/unet_redo_edge_epoch_10.pth'
-    #if os.path.exists(checkpoint_path):
-    #    print(f"Loading existing weights from {checkpoint_path}...")
-    #    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    #else:
-    #    print(f"{checkpoint_path} not found")
+    checkpoint_path = 'models/unet_redo_edge_epoch_10.pth'
+    if os.path.exists(checkpoint_path):
+        print(f"Loading existing weights from {checkpoint_path}...")
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    else:
+        print(f"{checkpoint_path} not found")
     
     criterion = MedicalPerceptualLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
