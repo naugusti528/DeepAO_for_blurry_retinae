@@ -1,5 +1,5 @@
 # DeepAO_for_blurry_retinae
-An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture.
+An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a Frequency Domain U-Net architecture. In other words, we use a Fourier Domain Convolutional (Neural) Network. My original approach of a U-Net architecture failed, and on July 23rd 2026 I did a major overhaul of the architecture and started new with a frequency domain based architecture instead.
 
 This project investigates whether a convolutional neural network can reconstruct sharp retinal fundus images from synthetically blurred inputs. If it can, we can automate and improve disease detection effectively.
 
