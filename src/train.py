@@ -46,9 +46,9 @@ class MedicalPerceptualLoss(nn.Module):
         target_edges = self._get_laplacian_edges(target)
         edge_loss = self.mse(pred_edges, target_edges)
         
-        pred_fft = torch.fft.rfft2(predicted, dim=(-2, -1))
-        target_fft = torch.fft.rfft2(target, dim=(-2, -1))
-        fourier_loss = self.mse(torch.abs(pred_fft), torch.abs(target_fft))
+        pred_fft = torch.log(torch.abs(torch.fft.rfft2(predicted, dim=(-2, -1))) + 1e-8)
+        target_fft = torch.log(torch.abs(torch.fft.rfft2(target, dim=(-2, -1))) + 1e-8)
+        fourier_loss = self.mse(pred_fft, target_fft)
 
         return (self.feature_weight * perceptual_loss) + (self.edge_weight * edge_loss)
         
@@ -74,9 +74,9 @@ def train_model():
     criterion = MedicalPerceptualLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
     
-    epochs = 11
+    epochs = 10
     print("\nStarting optimization loops...")
-    for epoch in range(1, epochs):
+    for epoch in range(20, epochs):
         model.train()
         running_loss = 0.0
         
@@ -89,6 +89,7 @@ def train_model():
             loss = criterion(outputs, targets)
             
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
             running_loss += loss.item()
