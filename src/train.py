@@ -74,7 +74,7 @@ def train_model():
     criterion = MedicalPerceptualLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
     
-    epochs = 10
+    epochs = 11
     print("\nStarting optimization loops...")
     for epoch in range(1, epochs):
         model.train()
