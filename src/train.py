@@ -46,20 +46,7 @@ class MedicalPerceptualLoss(nn.Module):
         target_edges = self._get_laplacian_edges(target)
         edge_loss = self.mse(pred_edges, target_edges)
         
-        pred_fft = torch.fft.rfft2(predicted, dim=(-2, -1))
-        target_fft = torch.fft.rfft2(target, dim=(-2, -1))
-        
-        #power spectrum:
-        pred_power = (pred_fft.real ** 2) + (pred_fft.imag ** 2)
-        target_power = (target_fft.real ** 2) + (target_fft.imag ** 2)
-        
-        #log scale power spectrum:
-        pred_log_power = torch.log(pred_power + 1e-6)
-        target_log_power = torch.log(target_power + 1e-6)
-
-        fourier_loss = self.mse(pred_log_power, target_log_power)
-
-        return (0.2 * perceptual_loss) + (0.5 * edge_loss) + (0.3 * fourier_loss)
+        return (0.3 * perceptual_loss) + (0.7 * edge_loss)
         
 def train_model():
     print("Initializing U-Net training pipeline with Perceptual Loss...")
@@ -70,15 +57,15 @@ def train_model():
     RAW_TRAIN = 'data/raw/extracted_images/augmented_resized_V2/train'
     PROCESSED_TRAIN = 'data/processed/train'
     
-    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=2, shuffle=True)
+    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=1, shuffle=True)
     model = UNet(in_channels=1, out_channels=1).to(device)
     
-    checkpoint_path = 'models/unet_redo_edge_epoch_10.pth'
-    if os.path.exists(checkpoint_path):
-        print(f"Loading existing weights from {checkpoint_path}...")
-        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    else:
-        print(f"{checkpoint_path} not found")
+    #checkpoint_path = 'models/unet_redo_edge_epoch_10.pth'
+    #if os.path.exists(checkpoint_path):
+    #    print(f"Loading existing weights from {checkpoint_path}...")
+    #    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    #else:
+    #    print(f"{checkpoint_path} not found")
     
     criterion = MedicalPerceptualLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -102,7 +89,8 @@ def train_model():
             optimizer.step()
             
             running_loss += loss.item()
-            
+            torch.mps.empty_cache()            
+
             if (batch_idx + 1) % 5 == 0:
                 print(f"Epoch [{epoch+1}/{epochs}] | Batch [{batch_idx+1}/{len(train_loader)}] | Perceptual Loss: {loss.item():.4f}")
         
