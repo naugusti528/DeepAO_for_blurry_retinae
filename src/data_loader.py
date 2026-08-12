@@ -17,7 +17,7 @@ class RetinalDeblurDataset(Dataset):
 
     def __getitem__(self, idx):
         blurry_path = self.blurry_paths[idx]
-        blurry_img = cv2.imread(blurry_path, cv2.IMREAD_GRAYSCALE) # Already single channel green
+        blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED) # Already single channel green
         filename = os.path.basename(blurry_path).replace('blurry_', '')
         
         raw_search = glob.glob(os.path.join(self.raw_dir, f'**/{filename}'), recursive=True)
