@@ -1,48 +1,42 @@
-# Logic for applying PSF blur and noise to raw images
-
-import cv2
 import os
 import glob
+import cv2
 import numpy as np
 
-RAW_TRAIN_DIR = 'data/raw/extracted_images/augmented_resized_V2/train'
-OUTPUT_DIR = 'data/processed/train'
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-image_paths = glob.glob(os.path.join(RAW_TRAIN_DIR, '**/*.jpg'), recursive=True)
-
-print(f"Found {len(image_paths)} clean ground-truth images.")
-print("Adding synthetic blur with Gaussian noise application...")
-
-for count, input_path in enumerate(image_paths[:50]):
-    image = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        continue
-
-    # Normalize image pixel values to 0.0 - 1.0 for accurate float math
-    image_normalized = image.astype(np.float32) / 255.0
-
-    # 4. Apply Gaussian Blur (Simulating camera defocus blur 'k')
-    # 15x15 kernel size creates a noticeable blur. Must be an odd number.
-    kernel_size = 15
-    sigma = 3.0
-    blurred_image = cv2.GaussianBlur(image_normalized, (kernel_size, kernel_size), sigma)
-
-    # 5. Add Gaussian Noise (Simulating camera sensor noise 'n')
-    noise_sigma = 0.02  # Higher numbers make the image grainier
-    gaussian_noise = np.random.normal(0.0, noise_sigma, blurred_image.shape)
+def simulate_optical_distortion():
+    INPUT_DIR = 'data/raw/extracted_images/augmented_resized_V2/train'
+    OUTPUT_DIR = 'data/processed/train'
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
-    # 6. Mathematical implementation: y = k*x + n
-    synthetic_image = blurred_image + gaussian_noise
-    synthetic_image = np.clip(synthetic_image, 0.0, 1.0) # Lock pixels within valid bounds
+    image_paths = sorted(glob.glob(os.path.join(INPUT_DIR, '**/*.jpg'), recursive=True))
+    if not image_paths:
+        print("Error: No raw images found. Check data directory split.")
+        return
+    print(f"Found {len(image_paths)} source files. Processing...")
+    
+    for idx, path in enumerate(image_paths):
+        color_img = cv2.imread(path)
+        if color_img is None:
+            continue
+        
+        green_img = color_img[:, :, 1]
+        clean_512 = cv2.resize(green_img, (512, 512), interpolation=cv2.INTER_AREA)
+        filename = os.path.basename(path)
+        
+        blurry_img = cv2.GaussianBlur(clean_512, (15, 15), 3.0)
+        row, col = blurry_img.shape
+        mean = 0   #adjustable
+        sigma = 5  #adjustable
+        gauss_noise = np.random.normal(mean, sigma, (row, col)).astype(np.float32)
+        noisy_blurry_img = np.clip(blurry_img.astype(np.float32) + gauss_noise, 0, 255).astype(np.uint8)
+        
+        output_path = os.path.join(OUTPUT_DIR, f'blurry_{filename}')
+        cv2.imwrite(output_path, noisy_blurry_img)
+        
+        if (idx + 1) % 500 == 0 or (idx + 1) == len(image_paths):
+            print(f"Processed [{idx + 1}/{len(image_paths)}] retinal images.")
 
-    # 7. Convert back to standard 8-bit image format and save
-    filename = os.path.basename(input_path)
-    output_path = os.path.join(OUTPUT_DIR, f"blurry_{filename}")
-    cv2.imwrite(output_path, (synthetic_image * 255).astype(np.uint8))
+    print("Data simulation pipeline successfully completed!")
 
-    if (count + 1) % 10 == 0:
-        print(f"Processed {count + 1}/50 images...")
-
-print(f"\nSuccess! Processed images are saved on your computer at: {OUTPUT_DIR}")
+if __name__ == '__main__':
+    simulate_optical_distortion()
