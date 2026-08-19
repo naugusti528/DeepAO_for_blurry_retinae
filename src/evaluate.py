@@ -7,101 +7,85 @@ import matplotlib.pyplot as plt
 from skimage.metrics import structural_similarity as ssim
 from src.model import UNet
 
+def calculate_psnr(img1, img2):
+    """Calculates Peak Signal-to-Noise Ratio cleanly using native NumPy mathematics."""
+    mse_val = np.mean((img1.astype(np.float32) - img2.astype(np.float32)) ** 2)
+    if mse_val == 0:
+        return float('inf')
+    max_pixel = 255.0
+    return 20 * np.log10(max_pixel / np.sqrt(mse_val))
+
 def evaluate_model():
-    print("Initializing U-Net Evaluation Pipeline...")
-    
-    # 1. Device configuration (Match training hardware)
+    print("Initializing U-Net Anatomical Loss Evaluation Pipeline...")
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
-    # 2. Path allocations matching project architecture layout
     MODEL_WEIGHTS = 'models/unet_anatomical_epoch_10.pth'
-    RAW_TEST_DIR = 'data/raw/extracted_images/augmented_resized_V2/train'
-    PROCESSED_TEST_DIR = 'data/processed/train'
-    OUTPUT_RESULTS_DIR = 'data/evaluation_outputs'
-    
-    os.makedirs(OUTPUT_RESULTS_DIR, exist_ok=True)
-    
-    # 3. Load the saved model weights
+    RAW_TEST_DIR = 'data/raw/extracted_images/augmented_resized_V2/test'
+    PROCESSED_TEST_DIR = 'data/processed/test'
+    OUTPUT_DIR = 'data/evaluation_outputs'
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
     model = UNET(in_channels=1, out_channels=1).to(device)
     if not os.path.exists(MODEL_WEIGHTS):
-        print(f"Error: Model weights not found at {MODEL_WEIGHTS}. Make sure your epochs finished saving!")
+        print(f"Error: Weights file not found at {MODEL_WEIGHTS}. Run train.py first.")
         return
 
     model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
     model.eval()
     print("Successfully loaded trained U-Net model weights.")
 
-    # 4. Grab a synthetically blurred test file to evaluate
-    blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_TRAIN, 'blurry_*.jpg')))
+    blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_TEST_DIR, 'blurry_*.jpg')))
     if not blurry_paths:
-        print("Error: No blurred images found in processed folder. Run simulator.py first!")
+        print("Error: No blurred images found in processed folder. Run simulator.py first")
         return
-        
-    # Grab the first blurry image available
+
     test_blurry_path = blurry_paths[0]
     filename = os.path.basename(test_blurry_path).replace('blurry_', '')
-    
-    # Locate its matching original clean ground truth file
-    raw_search = glob.glob(os.path.join(RAW_TEST_DIR, f'**/{filename}'), recursive=True)
-    if not raw_search:
-        print(f"Error: Could not locate clean matching image for {filename}")
-        return
-    test_clean_path = raw_search[0]
+    clean_path = os.path.join(RAW_TEST_DIR, filename)
+    if not os.path.exists(clean_path):
+        clean_path = os.path.join(RAW_TEST_DIR, 'images', filename)
+        if not os.path.exists(clean_path):
+            print(f"Error: Could not locate clean test target for {filename}")
+            return
 
-    # 5. Load and process the images for neural network feed
-    clean_img = cv2.imread(test_clean_path, cv2.IMREAD_GRAYSCALE)
-    blurry_img = cv2.imread(test_blurry_path, cv2.IMREAD_GRAYSCALE)
+    blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
+    color_clean = cv2.imread(clean_path)
     
-    # Convert blurry image to PyTorch tensor [Batch=1, Channel=1, H, W]
-    input_tensor = torch.tensor(blurry_img, dtype=torch.float32).unsqueeze(0).unsqueeze(0) / 255.0
-    input_tensor = input_tensor.to(device)
-
-    # 6. Pass blurry image through the U-Net for inference
-    print("Running deep model inference deblurring...")
+    green_clean = color_clean[:, :, 1]
+    clean_512 = cv2.resize(green_clean, (512, 512), interpolation=cv2.INTER_AREA)
+    inputs = torch.tensor(blurry_img, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device) / 255.0
     with torch.no_grad():
-        output_tensor = model(input_tensor)
-        
-    # Convert output tensor back to standard 8-bit NumPy image array
-    deblurred_img = (output_tensor.squeeze().cpu().numpy() * 255).astype(np.uint8)
-
-    # 7. Calculate Official Medical Metric Benchmarks
-    # Compare Blurry vs. Ground Truth
-    psnr_before = psnr(clean_img, blurry_img)
-    ssim_before = ssim(clean_img, blurry_img)
+        outputs = model(inputs)
     
-    # Compare Model Sharpened Output vs. Ground Truth
-    psnr_after = psnr(clean_img, deblurred_img)
-    ssim_after = ssim(clean_img, deblurred_img)
-
-    print("\n================ EVALUATION METRICS ================")
-    print(f"Original Blurry Image   -> PSNR: {psnr_before:.2f} dB | SSIM: {ssim_before:.4f}")
-    print(f"U-Net Sharpened Output -> PSNR: {psnr_after:.2f} dB | SSIM: {ssim_after:.4f}")
-    print("====================================================")
-
-    # 8. Save Before/After Visual Side-by-Side Plot
-    plt.figure(figsize=(15, 5))
+    # Convert tensor array back to standard pixel map format
+    deblurred_img = (outputs.squeeze().cpu().numpy() * 255.0).astype(np.uint8)
     
-    plt.subplot(1, 3, 1)
-    plt.title("Ground Truth (Clean)")
-    plt.imshow(clean_img, cmap='gray')
-    plt.axis('off')
+    # Calculate structural and peak noise benchmark metrics
+    current_ssim = ssim(clean_512, deblurred_img, data_range=255)
+    current_psnr = calculate_psnr(clean_512, deblurred_img)
+    print(f"\nEvaluation Complete! Target Image: {filename}")
+    print(f"System SSIM: {current_ssim:.4f} | System PSNR: {current_psnr:.2f} dB")
     
-    plt.subplot(1, 3, 2)
-    plt.title(f"Input Blur\nSSIM: {ssim_before:.4f}")
-    plt.imshow(blurry_img, cmap='gray')
-    plt.axis('off')
+    # Three-panel validation comparison plot using a true green colormap
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     
-    plt.subplot(1, 3, 3)
-    plt.title(f"U-Net Deblurred\nSSIM: {ssim_after:.4f}")
-    plt.imshow(deblurred_img, cmap='gray')
-    plt.axis('off')
+    axes.imshow(clean_512, cmap='Greens_r')
+    axes.set_title("Ground Truth (Clean Green)")
+    axes.axis('off')
     
-    plot_output_path = os.path.join(OUTPUT_RESULTS_DIR, 'deblur_comparison.png')
-    plt.savefig(plot_output_path, bbox_inches='tight')
+    axes.imshow(blurry_img, cmap='Greens_r')
+    axes.set_title("Input Blur (+ Gaussian Noise)")
+    axes.axis('off')
+    
+    axes.imshow(deblurred_img, cmap='Greens_r')
+    axes.set_title(f"U-Net Deblurred\nSSIM: {current_ssim:.4f} | PSNR: {current_psnr:.2f}dB")
+    axes.axis('off')
+    
+    plt.tight_layout()
+    output_plot_path = os.path.join(OUTPUT_DIR, 'deblur_comparison.png')
+    plt.savefig(output_plot_path)
     plt.close()
-    
-    print(f"\nVisual comparison plot successfully saved on your Mac at: {plot_output_path}")
+    print(f"Comparison visual plot successfully saved to: {output_plot_path}")
 
 if __name__ == '__main__':
     evaluate_model()
-
