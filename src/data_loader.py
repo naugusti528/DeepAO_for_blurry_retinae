@@ -25,9 +25,12 @@ class RetinalDeblurDataset(Dataset):
     def __getitem__(self, idx):
         blurry_path = self.blurry_paths[idx]
         filename = os.path.basename(blurry_path).replace('blurry_', '')
-        if filename not in self.raw_map:
-            raise FileNotFoundError(f"Could not find matching clean image for: {filename}")
+        
         raw_match_path = self.raw_map[filename]
+        if not os.path.exists(raw_match_path):
+            raw_match_path = os.path.join(self.raw_dir, 'images', filename)
+            if not os.path.exists(raw_match_path):
+                raise FileNotFoundError(f"Missing clean baseline image at: {raw_match_path}")
         
         blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
         color_clean = cv2.imread(raw_match_path)
