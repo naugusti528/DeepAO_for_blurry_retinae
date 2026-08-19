@@ -11,29 +11,27 @@ class RetinalDeblurDataset(Dataset):
         self.raw_dir = raw_dir
         self.processed_dir = processed_dir
         self.blurry_paths = sorted(glob.glob(os.path.join(processed_dir, 'blurry_*.jpg')))
-        print("Indexing raw source dataset directory once for high-speed lookups...")
-        self.raw_map = {}
-        for root, _, files in os.walk(raw_dir):
-            for file in files:
-                if file.endswith('.jpg'):
-                    self.raw_map[file] = os.path.join(root, file)
-        print(f"Successfully mapped {len(self.raw_map)} clean target references.")
-
+        print(f"Successfully loaded {len(self.blurry_paths)} processed blurry source references.")
+        
     def __len__(self):
         return len(self.blurry_paths)
 
     def __getitem__(self, idx):
         blurry_path = self.blurry_paths[idx]
         filename = os.path.basename(blurry_path).replace('blurry_', '')
+        if '-600' in filename:
+            filename = filename.replace('-600', '')
         
-        raw_match_path = self.raw_map[filename]
+        raw_match_path = os.path.join(self.raw_dir, filename)
         if not os.path.exists(raw_match_path):
             raw_match_path = os.path.join(self.raw_dir, 'images', filename)
             if not os.path.exists(raw_match_path):
-                raise FileNotFoundError(f"Missing clean baseline image at: {raw_match_path}")
+                raise FileNotFoundError(f"Missing clean baseline image matching tracking reference at: {raw_match_path}")
         
         blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
         color_clean = cv2.imread(raw_match_path)
+        if color_clean is None:
+            raise FileNotFoundError(f"Failed to read clean target path image: {raw_match_path}")
         green_clean = color_clean[:, :, 1]
         clean_512 = cv2.resize(green_clean, (512, 512), interpolation=cv2.INTER_AREA)
         gaussian_blur = cv2.GaussianBlur(clean_512, (5, 5), 1.0)
