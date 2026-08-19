@@ -4,10 +4,7 @@ import cv2
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
-
-# Import your custom model architecture
 from src.model import UNet
 
 def evaluate_model():
@@ -17,7 +14,7 @@ def evaluate_model():
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
     # 2. Path allocations matching project architecture layout
-    MODEL_WEIGHTS = 'models/unet_redo_edge_epoch_10.pth'
+    MODEL_WEIGHTS = 'models/unet_anatomical_epoch_10.pth'
     RAW_TEST_DIR = 'data/raw/extracted_images/augmented_resized_V2/train'
     PROCESSED_TEST_DIR = 'data/processed/train'
     OUTPUT_RESULTS_DIR = 'data/evaluation_outputs'
@@ -25,17 +22,17 @@ def evaluate_model():
     os.makedirs(OUTPUT_RESULTS_DIR, exist_ok=True)
     
     # 3. Load the saved model weights
+    model = UNET(in_channels=1, out_channels=1).to(device)
     if not os.path.exists(MODEL_WEIGHTS):
         print(f"Error: Model weights not found at {MODEL_WEIGHTS}. Make sure your epochs finished saving!")
         return
-        
-    model = UNet(in_channels=1, out_channels=1).to(device)
+
     model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
     model.eval()
     print("Successfully loaded trained U-Net model weights.")
 
     # 4. Grab a synthetically blurred test file to evaluate
-    blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_TEST_DIR, '*.jpg')))
+    blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_TRAIN, 'blurry_*.jpg')))
     if not blurry_paths:
         print("Error: No blurred images found in processed folder. Run simulator.py first!")
         return
