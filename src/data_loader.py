@@ -38,4 +38,4 @@ class RetinalDeblurDataset(Dataset):
 
 def get_deblur_dataloader(raw_dir, processed_dir, batch_size=1, shuffle=True):
     dataset = RetinalDeblurDataset(raw_dir, processed_dir)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_test_workers=2 if os.name != 'nt' else 0)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2 if os.name != 'nt' else 0)
