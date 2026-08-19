@@ -24,9 +24,7 @@ class RetinalDeblurDataset(Dataset):
         
         raw_match_path = os.path.join(self.raw_dir, filename)
         if not os.path.exists(raw_match_path):
-            raw_match_path = os.path.join(self.raw_dir, 'images', filename)
-            if not os.path.exists(raw_match_path):
-                raise FileNotFoundError(f"Missing clean baseline image matching tracking reference at: {raw_match_path}")
+            raise FileNotFoundError(f"File does not exist at: {raw_match_path}")
         
         blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
         color_clean = cv2.imread(raw_match_path)
