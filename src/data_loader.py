@@ -11,7 +11,7 @@ class RetinalDeblurDataset(Dataset):
         self.raw_dir = raw_dir
         self.processed_dir = processed_dir
         self.blurry_paths = sorted(glob.glob(os.path.join(processed_dir, 'blurry_*.jpg')))
-        print(f"Successfully loaded {len(self.blurry_paths)} processed blurry source references.")
+        print(f"Successfully loaded ALL {len(self.blurry_paths)} processed blurry source references.")
         
     def __len__(self):
         return len(self.blurry_paths)
@@ -19,17 +19,22 @@ class RetinalDeblurDataset(Dataset):
     def __getitem__(self, idx):
         blurry_path = self.blurry_paths[idx]
         filename = os.path.basename(blurry_path).replace('blurry_', '')
-        if '-600' in filename:
-            filename = filename.replace('-600', '')
-        
-        raw_match_path = os.path.join(self.raw_dir, filename)
+        # Clean down to raw numerical root ID
+        clean_name = filename
+        for tag in ['-600', 'GF-', '-GF', 'FA-', '-FA']:
+            clean_name = clean_name.replace(tag, '')
+        raw_match_path = os.path.join(self.raw_dir, clean_name)
         if not os.path.exists(raw_match_path):
-            raise FileNotFoundError(f"File does not exist at: {raw_match_path}")
-        
+            fallback_search = glob.glob(os.path.join(self.raw_dir, f"*{clean_name.replace('.jpg', '')}*.jpg"))
+            if fallback_search:
+                raw_match_path = fallback_search[0]
+            else:
+                raise FileNotFoundError(f"CRITICAL GAP: Cannot locate any clean raw target for: {filename}")
         blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
         color_clean = cv2.imread(raw_match_path)
         if color_clean is None:
-            raise FileNotFoundError(f"Failed to read clean target path image: {raw_match_path}")
+            raise FileNotFoundError(f"Failed to read clean target image matrix at: {raw_match_path}")
+        
         green_clean = color_clean[:, :, 1]
         clean_512 = cv2.resize(green_clean, (512, 512), interpolation=cv2.INTER_AREA)
         gaussian_blur = cv2.GaussianBlur(clean_512, (5, 5), 1.0)
