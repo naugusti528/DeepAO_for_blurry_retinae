@@ -57,18 +57,18 @@ def train_model():
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
-            
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            
             running_loss += loss.item()
             torch.mps.empty_cache()
             
-            if (batch_idx + 1) % 5 == 0 or (batch_idx+1) == len(train_loader):
-                print(f"Epoch [{epoch}/10] Batch [{batch_idx + 1}/len(train_loader)] Loss: {loss.item():.4f}")
+            if batch_idx>=24:
+                break
+            if (batch_idx + 1) % 5 == 0:
+                print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/25] | Loss: {loss.item():.4f}")
                 
-        avg_epoch_loss = running_loss / len(train_loader)
+        avg_epoch_loss = running_loss / 25
         print(f"--> Finished Epoch [{epoch}/10] | Average Priority Loss: {avg_epoch_loss:.4f}")
         torch.save(model.state_dict(), f'models/unet_anatomical_epoch_{epoch}.pth')
         
