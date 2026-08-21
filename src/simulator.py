@@ -2,6 +2,7 @@ import os
 import glob
 import cv2
 import numpy as np
+import csv
 
 def simulate_optical_distortion():
     splits = ['train', 'test']
@@ -11,7 +12,7 @@ def simulate_optical_distortion():
         OUTPUT_DIR = f'data/processed/{split}'
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
-        image_paths = sorted(glob.glob(os.path.join(INPUT_DIR, '**/*.jpg'), recursive=True))
+        image_paths = sorted(glob.glob(os.path.join(INPUT_DIR, '**/*.jpg')))
         if not image_paths:
             print(f"Warning: No raw images found for split: {split}. Skipping.")
             continue
