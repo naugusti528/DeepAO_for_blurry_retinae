@@ -14,7 +14,7 @@ def generate_manifest_from_existing_files():
         
         blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_DIR, 'blurry_*.jpg')))
         raw_files = sorted(glob.glob(os.path.join(RAW_DIR, '*.jpg')))
-        if not blurry_files or not raw_files:
+        if not blurry_paths or not raw_files:
             print(f"Warning: Missing files in split: {split}. Skipping.")
             continue    
         print(f"Found {len(blurry_paths)} existing processed files in [{split}]. Mapping...")
