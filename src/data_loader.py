@@ -1,7 +1,7 @@
 # Scripts to load and augment image batches
 
 import os
-import glob
+import csv
 import cv2
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -10,36 +10,36 @@ class RetinalDeblurDataset(Dataset):
     def __init__(self, raw_dir, processed_dir):
         self.raw_dir = raw_dir
         self.processed_dir = processed_dir
-        self.blurry_paths = sorted(glob.glob(os.path.join(processed_dir, 'blurry_*.jpg')))
-        print(f"Successfully loaded ALL {len(self.blurry_paths)} processed blurry source references.")
+        self.samples = []
         
+        manifest_path = os.path.join(processed_dir, 'manifest.csv')
+        if not os.path.exists(manifest_path):
+            raise FileNotFoundError(f"Database Error: Missing manifest map at {manifest_path}. Run simulator.py first.")
+            
+        with open(manifest_path, mode='r') as f:
+            reader = csv.reader(f)
+            next(reader) # Skip header
+            for row in reader:
+                if len(row) == 2:
+                    blurry_filename, raw_absolute_path = row
+                    blurry_path = os.path.join(processed_dir, blurry_filename)
+                    self.samples.append((blurry_path, raw_absolute_path))
+        print(f"Database Loaded! Handshaked {len(self.samples)} uncompromised pipeline paths.")
+
     def __len__(self):
-        return len(self.blurry_paths)
+        return len(self.samples)
 
     def __getitem__(self, idx):
-        blurry_path = self.blurry_paths[idx]
-        filename = os.path.basename(blurry_path).replace('blurry_', '')
-        # Clean down to raw numerical root ID
-        clean_name = filename
-        for tag in ['-600', 'GF-', '-GF', 'FA-', '-FA']:
-            clean_name = clean_name.replace(tag, '')
-        raw_match_path = os.path.join(self.raw_dir, clean_name)
-        if not os.path.exists(raw_match_path):
-            fallback_search = glob.glob(os.path.join(self.raw_dir, f"*{clean_name.replace('.jpg', '')}*.jpg"))
-            if fallback_search:
-                raw_match_path = fallback_search[0]
-            else:
-                raise FileNotFoundError(f"CRITICAL GAP: Cannot locate any clean raw target for: {filename}")
+        blurry_path, raw_match_path = self.samples[idx]
         blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
         color_clean = cv2.imread(raw_match_path)
         if color_clean is None:
-            raise FileNotFoundError(f"Failed to read clean target image matrix at: {raw_match_path}")
-        
+            raise FileNotFoundError(f"Database sync failure: File missing at {raw_match_path}")
+            
         green_clean = color_clean[:, :, 1]
         clean_512 = cv2.resize(green_clean, (512, 512), interpolation=cv2.INTER_AREA)
         gaussian_blur = cv2.GaussianBlur(clean_512, (5, 5), 1.0)
         clean_sharpened = cv2.addWeighted(clean_512, 1.5, gaussian_blur, -0.5, 0)
-        
         blurry_tensor = torch.tensor(blurry_img, dtype=torch.float32).unsqueeze(0) / 255.0
         clean_tensor = torch.tensor(clean_sharpened, dtype=torch.float32).unsqueeze(0) / 255.0
         
@@ -47,5 +47,4 @@ class RetinalDeblurDataset(Dataset):
 
 def get_deblur_dataloader(raw_dir, processed_dir, batch_size=4, shuffle=True):
     dataset = RetinalDeblurDataset(raw_dir, processed_dir)
-    # 0 workers to avoid background thread synchronization deadlocks on Mac
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0)
