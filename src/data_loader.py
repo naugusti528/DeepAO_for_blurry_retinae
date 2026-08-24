@@ -14,7 +14,7 @@ class RetinalDeblurDataset(Dataset):
         
         manifest_path = os.path.join(processed_dir, 'manifest.csv')
         if not os.path.exists(manifest_path):
-            raise FileNotFoundError(f"Database Error: Missing manifest map at {manifest_path}. Run simulator.py first.")
+            manifest_path = os.path.join(os.path.dirname(processed_dir), 'manifest.csv')
             
         with open(manifest_path, mode='r') as f:
             reader = csv.reader(f)
