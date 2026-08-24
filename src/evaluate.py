@@ -1,5 +1,5 @@
 import os
-import glob
+import csv
 import cv2
 import torch
 import numpy as np
@@ -20,7 +20,6 @@ def evaluate_model():
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
     MODEL_WEIGHTS = 'models/unet_anatomical_epoch_10.pth'
-    RAW_TEST_DIR = 'data/raw/extracted_images/augmented_resized_V2/test'
     PROCESSED_TEST_DIR = 'data/processed/test'
     OUTPUT_DIR = 'data/evaluation_outputs'
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -29,7 +28,6 @@ def evaluate_model():
     if not os.path.exists(MODEL_WEIGHTS):
         print(f"Error: Weights file not found at {MODEL_WEIGHTS}. Run train.py first.")
         return
-
     model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
     model.eval()
     print("Successfully loaded trained U-Net model weights.")
