@@ -12,35 +12,37 @@ def simulate_optical_distortion():
         OUTPUT_DIR = f'data/processed/{split}'
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
-        image_paths = sorted(glob.glob(os.path.join(INPUT_DIR, '**/*.jpg')))
+        image_paths = sorted(glob.glob(os.path.join(INPUT_DIR, '*.jpg')))
         if not image_paths:
             print(f"Warning: No raw images found for split: {split}. Skipping.")
             continue
 
         print(f"Found {len(image_paths)} source files in [{split}]. Processing...")
         
-        for idx, path in enumerate(image_paths):
-            color_img = cv2.imread(path)
-            if color_img is None:
-                continue
-            # greenscale + 512x512 resizing
-            green_img = color_img[:, :, 1]
-            clean_512 = cv2.resize(green_img, (512, 512), interpolation=cv2.INTER_AREA)
-            filename = os.path.basename(path)
-            # 15x15 Gaussian Blur + noise
-            blurry_img = cv2.GaussianBlur(clean_512, (15, 15), 3.0)
-            row, col = blurry_img.shape
-            mean = 0
-            sigma = 5
-            gauss_noise = np.random.normal(mean, sigma, (row, col)).astype(np.float32)
-            noisy_blurry_img = np.clip(blurry_img.astype(np.float32) + gauss_noise, 0, 255).astype(np.uint8)
+        manifest_path = os.path.join(OUTPUT_DIR, 'manifest.csv')
+        with open(manifest_path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['index', 'blurry_absolute_path', 'raw_absolute_path']) # Header
             
-            output_path = os.path.join(OUTPUT_DIR, f'blurry_{filename}')
-            cv2.imwrite(output_path, noisy_blurry_img)
-            
-            if (idx + 1) % 500 == 0 or (idx + 1) == len(image_paths):
-                print(f"[{split}] Processed [{idx + 1}/{len(image_paths)}] retinal images.")
-
+            for idx, path in enumerate(image_paths):
+                color_img = cv2.imread(path)
+                if color_img is None:
+                    continue
+                green_img = color_img[:, :, 1]
+                clean_512 = cv2.resize(green_img, (512, 512), interpolation=cv2.INTER_AREA)
+                
+                blurry_img = cv2.GaussianBlur(clean_512, (15, 15), 3.0)
+                row, col = blurry_img.shape
+                gauss_noise = np.random.normal(0, 5, (row, col)).astype(np.float32)
+                noisy_blurry = np.clip(blurry_img.astype(np.float32) + gauss_noise, 0, 255).astype(np.uint8)
+                blurry_filename = f'blurry_{idx}.jpg'
+                blurry_abs_path = os.path.abspath(os.path.join(OUTPUT_DIR, blurry_filename))
+                cv2.imwrite(blurry_abs_path, noisy_blurry)
+                writer.writerow([idx, blurry_abs_path, os.path.abspath(path)])
+                
+                if (idx + 1) % 500 == 0 or (idx + 1) == len(image_paths):
+                    print(f"[{split}] Baked and Index-Mapped [{idx + 1}/{len(image_paths)}] frames.")
+                    
     print("Data simulation pipeline successfully completed across all splits!")
 
 if __name__ == '__main__':
