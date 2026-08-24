@@ -20,10 +20,10 @@ class RetinalDeblurDataset(Dataset):
             reader = csv.reader(f)
             next(reader) # Skip header
             for row in reader:
-                if len(row) == 2:
-                    blurry_filename, raw_absolute_path = row
-                    blurry_path = os.path.join(processed_dir, blurry_filename)
-                    self.samples.append((blurry_path, raw_absolute_path))
+                if len(row) >= 2:
+                    blurry_abs_path = row[-2]
+                    raw_abs_path = row[-1]
+                    self.samples.append((blurry_abs_path, raw_abs_path))
         print(f"Database Loaded! Handshaked {len(self.samples)} uncompromised pipeline paths.")
 
     def __len__(self):
