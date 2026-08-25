@@ -63,10 +63,10 @@ def train_model():
             running_loss += loss.item()
             torch.mps.empty_cache()
             
-            if batch_idx>=24:
-                break
             if (batch_idx + 1) % 5 == 0:
                 print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/25] | Loss: {loss.item():.4f}")
+            if batch_idx>=24:
+                break
                 
         avg_epoch_loss = running_loss / 25
         print(f"--> Finished Epoch [{epoch}/10] | Average Priority Loss: {avg_epoch_loss:.4f}")
