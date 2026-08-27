@@ -33,22 +33,22 @@ def evaluate_model():
     model.eval()
     print("Successfully loaded trained U-Net model weights.")
 
-    blurry_paths = sorted(glob.glob(os.path.join(PROCESSED_TEST_DIR, 'blurry_*.jpg')))
-    if not blurry_paths:
-        print("Error: No blurred images found in processed folder. Run simulator.py first")
+    manifest_path = os.path.join(PROCESSED_TEST_DIR, 'manifest.csv')
+    if not os.path.exists(manifest_path):
+        print(f"Error: Missing test manifest file at {manifest_path}. Run simulator.py first.")
         return
-
-    test_blurry_path = blurry_paths[0]
-    filename = os.path.basename(test_blurry_path).replace('blurry_', '')
-    clean_path = os.path.join(RAW_TEST_DIR, filename)
-    if not os.path.exists(clean_path):
-        clean_path = os.path.join(RAW_TEST_DIR, 'images', filename)
-        if not os.path.exists(clean_path):
-            print(f"Error: Could not locate clean test target for {filename}")
-            return
+        
+    with open(manifest_path, mode='r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        next(reader)
+        first_row = next(reader)
+        idx_num, blurry_abs_path, raw_abs_path = first_row
 
     blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
-    color_clean = cv2.imread(clean_path)
+    color_clean = cv2.imread(raw_abs_path)
+    if blurry_img is None or color_clean is None:
+        print("Error: Failed to read file targets from manifest memory address links.")
+        return
     
     green_clean = color_clean[:, :, 1]
     clean_512 = cv2.resize(green_clean, (512, 512), interpolation=cv2.INTER_AREA)
@@ -62,7 +62,7 @@ def evaluate_model():
     # Calculate structural and peak noise benchmark metrics
     current_ssim = ssim(clean_512, deblurred_img, data_range=255)
     current_psnr = calculate_psnr(clean_512, deblurred_img)
-    print(f"\nEvaluation Complete! Target Image: {filename}")
+    print(f"\nEvaluation Complete! Target Index Asset Slot: {idx_num}")
     print(f"System SSIM: {current_ssim:.4f} | System PSNR: {current_psnr:.2f} dB")
     
     # Three-panel validation comparison plot using a true green colormap
