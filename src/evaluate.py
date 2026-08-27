@@ -44,7 +44,7 @@ def evaluate_model():
         first_row = next(reader)
         idx_num, blurry_abs_path, raw_abs_path = first_row
 
-    blurry_img = cv2.imread(blurry_path, cv2.IMREAD_UNCHANGED)
+    blurry_img = cv2.imread(blurry_abs_path, cv2.IMREAD_UNCHANGED)
     color_clean = cv2.imread(raw_abs_path)
     if blurry_img is None or color_clean is None:
         print("Error: Failed to read file targets from manifest memory address links.")
