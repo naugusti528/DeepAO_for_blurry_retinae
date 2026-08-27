@@ -51,9 +51,10 @@ def train_model():
         model.train()
         running_loss = 0.0
         
+        train_loader.dataset.samples = train_loader.dataset.samples
+        
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(device), targets.to(device)
-            
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
@@ -61,15 +62,16 @@ def train_model():
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             running_loss += loss.item()
-            torch.mps.empty_cache()
             
-            if (batch_idx + 1) % 5 == 0:
-                print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/25] | Loss: {loss.item():.4f}")
-            if batch_idx>=24:
+            del inputs, targets, outputs, loss
+            torch.mps.empty_cache()
+            if (batch_idx + 1) % 25 == 0:
+                print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/250] | Current Step Loss: {running_loss / (batch_idx + 1):.4f}")
+            if batch_idx >= 249: 
                 break
                 
-        avg_epoch_loss = running_loss / 25
-        print(f"--> Finished Epoch [{epoch}/10] | Average Priority Loss: {avg_epoch_loss:.4f}")
+        avg_epoch_loss = running_loss / 250
+        print(f"--> Finished Epoch [{epoch}/10] | Average Priority Loss: {avg_epoch_loss:.4f}\n")
         torch.save(model.state_dict(), f'models/unet_anatomical_epoch_{epoch}.pth')
         
     print("Training complete! Weights saved as models/unet_anatomical_epoch_10.pth")
