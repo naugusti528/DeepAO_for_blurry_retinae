@@ -24,7 +24,7 @@ def evaluate_model():
     OUTPUT_DIR = 'data/evaluation_outputs'
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    model = UNET(in_channels=1, out_channels=1).to(device)
+    model = UNet(in_channels=1, out_channels=1).to(device)
     if not os.path.exists(MODEL_WEIGHTS):
         print(f"Error: Weights file not found at {MODEL_WEIGHTS}. Run train.py first.")
         return
