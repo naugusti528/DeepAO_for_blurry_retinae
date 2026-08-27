@@ -66,19 +66,19 @@ def evaluate_model():
     print(f"System SSIM: {current_ssim:.4f} | System PSNR: {current_psnr:.2f} dB")
     
     # Three-panel validation comparison plot using a true green colormap
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, (ax1,ax2,ax3) = plt.subplots(1, 3, figsize=(15, 5))
     
-    axes.imshow(clean_512, cmap='Greens_r')
-    axes.set_title("Ground Truth (Clean Green)")
-    axes.axis('off')
+    ax1.imshow(clean_512, cmap='Greens_r')
+    ax1.set_title("Ground Truth (Clean Green)")
+    ax1.axis('off')
     
-    axes.imshow(blurry_img, cmap='Greens_r')
-    axes.set_title("Input Blur (+ Gaussian Noise)")
-    axes.axis('off')
+    ax2.imshow(blurry_img, cmap='Greens_r')
+    ax2.set_title("Input Blur (+ Gaussian Noise)")
+    ax2.axis('off')
     
-    axes.imshow(deblurred_img, cmap='Greens_r')
-    axes.set_title(f"U-Net Deblurred\nSSIM: {current_ssim:.4f} | PSNR: {current_psnr:.2f}dB")
-    axes.axis('off')
+    ax3.imshow(deblurred_img, cmap='Greens_r')
+    ax3.set_title(f"U-Net Deblurred\nSSIM: {current_ssim:.4f} | PSNR: {current_psnr:.2f}dB")
+    ax3.axis('off')
     
     plt.tight_layout()
     output_plot_path = os.path.join(OUTPUT_DIR, 'deblur_comparison.png')
