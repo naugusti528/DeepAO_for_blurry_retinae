@@ -19,7 +19,7 @@ def evaluate_model():
     print("Initializing U-Net Anatomical Loss Evaluation Pipeline...")
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
-    MODEL_WEIGHTS = 'models/unet_anatomical_epoch_10.pth'
+    MODEL_WEIGHTS = 'models/unet_anatomical_epoch_7.pth'
     PROCESSED_TEST_DIR = 'data/processed/test'
     OUTPUT_DIR = 'data/evaluation_outputs'
     os.makedirs(OUTPUT_DIR, exist_ok=True)
