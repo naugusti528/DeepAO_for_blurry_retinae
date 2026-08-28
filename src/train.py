@@ -36,7 +36,7 @@ def train_model():
     PROCESSED_TRAIN = 'data/processed/train'
     
     print("Loading 512x512 green-channel data loader...")
-    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=4, shuffle=True)
+    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=8, shuffle=True)
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Initializing standard U-Net on device: {device}")
     
@@ -44,7 +44,7 @@ def train_model():
     criterion = AnatomicalPriorityLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
     os.makedirs('models', exist_ok=True)
-    epochs = 11
+    epochs = 21
     
     print("\nStarting Anatomical-Prioritized Training from Scratch (512x512)...")
     for epoch in range(1, epochs):
