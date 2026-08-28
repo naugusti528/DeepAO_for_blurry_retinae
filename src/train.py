@@ -65,8 +65,7 @@ def train_model():
             
             del inputs, targets, outputs, loss
             torch.mps.empty_cache()
-            if (batch_idx + 1) % 25 == 0:
-                print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/250] | Current Step Loss: {running_loss / (batch_idx + 1):.4f}")
+            print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/250] | Current Step Loss: {running_loss / (batch_idx + 1):.4f}")
             if batch_idx >= 249: 
                 break
                 
