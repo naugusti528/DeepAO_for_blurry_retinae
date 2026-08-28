@@ -36,7 +36,7 @@ def train_model():
     PROCESSED_TRAIN = 'data/processed/train'
     
     print("Loading 512x512 green-channel data loader...")
-    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=8, shuffle=True)
+    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=4, shuffle=True)
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Initializing standard U-Net on device: {device}")
     
