@@ -1,56 +1,84 @@
+# frontend part of full stack
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Retinal Image Restoration Panel</title>
-    <script src="https://tailwindcss.com"></script>
+    <!-- Hardcoded Native CSS Fallbacks to protect layout if CDN fails -->
+    <style>
+        body { background-color: #0f172a; color: #f1f5f9; font-family: sans-serif; display: flex; flex-direction: column; items-center; padding: 40px 16px; margin: 0; }
+        .header-title { color: #34d399; font-size: 32px; font-weight: 800; margin-bottom: 8px; text-align: center; }
+        .header-sub { color: #94a3b8; font-size: 16px; margin-bottom: 40px; text-align: center; }
+        
+        /* Fixed upload zone restrictions - forces it to remain small */
+        .upload-container { max-width: 440px; width: 100%; bg-color: #1e293b; padding: 24px; border-radius: 16px; border: 1px solid #334155; margin: 0 auto 48px auto; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); text-align: center; }
+        .drop-zone { display: flex; flex-direction: column; items-center; padding: 20px; border: 2px dashed #475569; border-radius: 12px; cursor: pointer; color: #94a3b8; text-decoration: none; margin-bottom: 20px; }
+        .drop-zone:hover { border-color: #10b981; color: #e2e8f0; }
+        .submit-btn { width: 100%; padding: 12px; font-weight: 600; background-color: #10b981; color: #022c22; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; transition: transform 0.1s; }
+        .submit-btn:active { transform: scale(0.97); }
+        
+        .results-grid { max-width: 1000px; width: 100%; display: grid; grid-template-columns: 1fr; gap: 32px; margin: 0 auto; }
+        @media (min-width: 768px) { .results-grid { grid-template-columns: 1fr 1fr; } }
+        .card { background-color: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; display: flex; flex-direction: column; items-center; }
+        .card-title { font-size: 18px; font-weight: 700; color: #94a3b8; margin-top: 0; margin-bottom: 16px; }
+        .card-title.active { color: #34d399; }
+        
+        /* ⭐ CLINICAL GREENSCALE TINT MASK ⭐ */
+        /* Mixes a monochrome base with an emerald overlay to enforce medical greenscale */
+        .retinal-display-frame { position: relative; width: 100%; aspect-ratio: 1/1; border-radius: 12px; overflow: hidden; background-color: #000; border: 1px solid #0f172a; }
+        .retinal-img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); mix-blend-mode: luminosity; }
+        .green-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(16, 185, 129, 0.25); mix-blend-mode: color; pointer-events: none; }
+        
+        .hidden { display: none !important; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col items-center py-12 px-4">
+<body>
 
-    <!-- Header Panel -->
-    <div class="max-w-5xl w-full text-center mb-10">
-        <h1 class="text-4xl font-extrabold tracking-tight text-emerald-400 mb-2">Retinal Image Restoration Engine</h1>
-        <p class="text-slate-400">High-Throughput Green-Channel Spatial U-Net Deconvolution Pipeline</p>
-    </div>
+    <div class="header-title">Retinal Image Restoration Engine</div>
+    <div class="header-sub">High-Throughput Green-Channel Spatial U-Net Deconvolution Pipeline</div>
 
-    <!-- Upload Box Component -->
-    <div class="max-w-xl w-full bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl mb-12">
-        <form id="uploadForm" class="flex flex-col items-center gap-6">
-            <label class="w-full flex flex-col items-center px-4 py-8 bg-slate-900 text-slate-400 rounded-xl border-2 border-dashed border-slate-600 cursor-pointer hover:border-emerald-500 hover:text-slate-200 transition-colors">
-                <svg class="w-12 h-12 mb-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                <span class="text-sm font-medium" id="uploadLabel">Select retinal file (.jpg / .png)</span>
+    <!-- Sized Upload Module -->
+    <div class="upload-container">
+        <form id="uploadForm">
+            <label class="drop-zone">
+                <svg style="width:40px; height:40px; margin-bottom:12px; color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <span id="uploadLabel" style="font-size:14px;">Select retinal file (.jpg / .png)</span>
                 <input type="file" id="imageInput" accept="image/*" class="hidden" required>
             </label>
-            <button type="submit" class="w-full py-3 px-6 font-semibold bg-emerald-500 text-slate-950 rounded-xl hover:bg-emerald-400 active:scale-95 transition-all shadow-lg shadow-emerald-500/20">
-                Enhance Diagnostic Scan
-            </button>
+            <button type="submit" class="submit-btn">Enhance Diagnostic Scan</button>
         </form>
     </div>
 
-    <!-- Split-Screen Results Display Grid -->
-    <div id="resultsGrid" class="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 hidden">
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col items-center">
-            <h3 class="text-lg font-bold text-slate-300 mb-4">Green-Channel Blurred Input</h3>
-            <img id="inputImg" class="rounded-xl border border-slate-900 w-full aspect-square object-cover" src="" alt="Input View">
+    <!-- Unified Display Dashboard -->
+    <div id="resultsGrid" class="results-grid hidden">
+        <div class="card">
+            <h3 class="card-title">Green-Channel Blurred Input</h3>
+            <div class="retinal-display-frame">
+                <img id="inputImg" class="retinal-img" src="">
+                <div class="green-overlay"></div>
+            </div>
         </div>
-        <div class="bg-slate-800 p-6 rounded-2xl border border-emerald-800 shadow-xl flex flex-col items-center">
-            <h3 class="text-lg font-bold text-emerald-400 mb-4">7-Way Ensemble Restored Details</h3>
-            <img id="outputImg" class="rounded-xl border border-slate-900 w-full aspect-square object-cover" src="" alt="Output View">
+        <div class="card" style="border-color: #064e3b;">
+            <h3 class="card-title active">7-Way Ensemble Restored Details</h3>
+            <div class="retinal-display-frame">
+                <img id="outputImg" class="retinal-img" src="">
+                <div class="green-overlay"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Update label text dynamically when a user selects a file
         const fileInput = document.getElementById('imageInput');
         const uploadLabel = document.getElementById('uploadLabel');
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
                 uploadLabel.textContent = `Selected: ${fileInput.files[0].name}`;
+                uploadLabel.style.color = '#34d399';
             }
         });
 
-        // Form submission network link handling
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!fileInput.files.length) return;
@@ -59,14 +87,12 @@
             formData.append('file', fileInput.files[0]);
 
             try {
-                // Send the image bytes over HTTP to the backend server app.py
                 const response = await fetch('/deblur', { method: 'POST', body: formData });
                 const data = await response.json();
                 
                 if (data.error) {
                     alert(data.error);
                 } else {
-                    // Update image source URLs dynamically using cache-busting timestamp parameters
                     document.getElementById('inputImg').src = data.input_url + '?t=' + new Date().getTime();
                     document.getElementById('outputImg').src = data.output_url + '?t=' + new Date().getTime();
                     document.getElementById('resultsGrid').classList.remove('hidden');
