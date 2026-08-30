@@ -74,15 +74,21 @@ def deblur_image():
     
     accumulated_outputs = None
     with torch.no_grad():
-        for model in ensemble_models:
+        output_sliding_window = ensemble_models[0](tensor_input)
+        legacy_accumulation = None
+        legacy_count = 0
+        
+        for model in ensemble_models[1:]:
             output_tensor = model(tensor_input)
-            if accumulated_outputs is None:
-                accumulated_outputs = output_tensor
+            if legacy_accumulation is None:
+                legacy_accumulation = output_tensor
             else:
-                accumulated_outputs += output_tensor
-                
-        # Calculating final blended matrix mean average across all operational models
-        blended_output = accumulated_outputs / float(len(ensemble_models))
+                legacy_accumulation += output_tensor
+            legacy_count += 1
+        legacy_consensus = legacy_accumulation / float(legacy_count)
+        
+        # Biasing the math 85% to the generalized model and 15% to the legacy filter
+        blended_output = (output_sliding_window * 0.85) + (legacy_consensus * 0.15)
         
     # reconstructing combined tensor array back to standard image bytes
     deblurred_array = (blended_output.squeeze().cpu().numpy() * 255.0).astype(np.uint8)
