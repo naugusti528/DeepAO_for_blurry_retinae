@@ -34,9 +34,9 @@ class AnatomicalPriorityLoss(nn.Module):
 def train_model():
     RAW_TRAIN = 'data/raw/extracted_images/augmented_resized_V2/train'
     PROCESSED_TRAIN = 'data/processed/train'
-    
-    print("Loading 512x512 green-channel data loader...")
-    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=4, shuffle=True)
+    BATCH_SIZE = 4
+    print("Initializing Data Stream...")
+    train_loader = get_deblur_dataloader(RAW_TRAIN, PROCESSED_TRAIN, batch_size=BATCH_SIZE, shuffle=True)
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Initializing standard U-Net on device: {device}")
     
@@ -44,14 +44,16 @@ def train_model():
     criterion = AnatomicalPriorityLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
     os.makedirs('models', exist_ok=True)
-    epochs = 21
+    # training for 10 complete sliding-window epochs
+    epochs = 11 
     
-    print("\nStarting Anatomical-Prioritized Training from Scratch (512x512)...")
+    print("\nStarting Sliding-Window Dataset Training...")
     for epoch in range(1, epochs):
         model.train()
         running_loss = 0.0
-        
-        train_loader.dataset.samples = train_loader.dataset.samples
+        # forcing fresh dataset shuffle array permutation at the start of every epoch
+        import random
+        random.shuffle(train_loader.dataset.samples)
         
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(device), targets.to(device)
@@ -62,16 +64,17 @@ def train_model():
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             running_loss += loss.item()
-            
+            # cache flush to wipe intermediate graph memory
             del inputs, targets, outputs, loss
             torch.mps.empty_cache()
-            print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/250] | Current Step Loss: {running_loss / (batch_idx + 1):.4f}")
+            print(f"Epoch [{epoch}/10] | Batch [{batch_idx + 1}/250] | Step Loss: {running_loss / (batch_idx + 1):.5f}")
+            # Hard stop at 250 batches (1,000 unique images)
             if batch_idx >= 249: 
                 break
                 
         avg_epoch_loss = running_loss / 250
-        print(f"--> Finished Epoch [{epoch}/10] | Average Priority Loss: {avg_epoch_loss:.4f}\n")
-        torch.save(model.state_dict(), f'models/unet_anatomical_epoch_{epoch}.pth')
+        print(f"--> Finished Epoch [{epoch}/10] | Average Sliding-Window Loss: {avg_epoch_loss:.5f}\n")
+        torch.save(model.state_dict(), f'models/unet_anatomical_sliding_epoch_{epoch}.pth')
         
     print("Training complete! Weights saved as models/unet_anatomical_epoch_10.pth")
 
