@@ -91,9 +91,20 @@ def deblur_image():
         blended_output = (output_sliding_window * 0.85) + (legacy_consensus * 0.15)
         
     # reconstructing combined tensor array back to standard image bytes
+    input_green_file = cv2.merge([
+        np.zeros_like(resized_input), # Blue = 0
+        resized_input,                # Green = Data
+        np.zeros_like(resized_input)  # Red = 0
+    ])
+    cv2.imwrite(os.path.join(UPLOAD_FOLDER, 'input_greenscale.jpg'), input_green_file)
     deblurred_array = (blended_output.squeeze().cpu().numpy() * 255.0).astype(np.uint8)
+    output_green_file = cv2.merge([
+        np.zeros_like(deblurred_array), # Blue = 0
+        deblurred_array,                # Green = Data
+        np.zeros_like(deblurred_array)  # Red = 0
+    ])
     output_path = os.path.join(UPLOAD_FOLDER, 'output_deblurred.jpg')
-    cv2.imwrite(output_path, deblurred_array)
+    cv2.imwrite(output_path, output_green_file)
     
     return jsonify({
         'input_url': '/uploads/input_greenscale.jpg',
