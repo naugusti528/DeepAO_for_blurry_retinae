@@ -39,7 +39,7 @@ Retinal images can be blurry due to factors like camera focus, ocular aberration
 The current implementation evaluates reconstruction from synthetically blurred retinal images. Performance on real-world optical and motion blur is a valid question; my project can reconstruct the quality of retinal images irrespective of the source of blur.
 
 ## Operation Procedure / Methodology:
-Although the underlying blur kernel is unknown, the network is trained in a supervised image-to-image framework using paired sharp and synthetically blurred images. At inference time, the blur kernel does not need to be explicitly estimated.
+Although the underlying blur kernel is unknown, the network is trained in a supervised image-to-image framework using paired sharp and synthetically blurred images. At inference time, the blur kernel does not need to be explicitly estimated. The full stack application processes input images such that the output images are strictly greenscale; the color selection is intentional, and is the color channel used by doctors to accurately examine retinal images.
 
 ## Model Architecture:
 
