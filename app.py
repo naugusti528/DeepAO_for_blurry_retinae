@@ -12,7 +12,7 @@ UPLOAD_FOLDER = 'data/web_uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 model = UNet(in_channels=1, out_channels=1).to(device)
-weights_path = 'models/unet_anatomical_epoch_1.pth'
+weights_path = 'models/unet_anatomical_sliding_epoch_3.pth'
 
 if os.path.exists(weights_path):
     model.load_state_dict(torch.load(weights_path, map_location=device))
