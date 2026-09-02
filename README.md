@@ -2,7 +2,34 @@
 An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture enhanced with a model function tailored to retinal anatomical features. This project investigates whether a convolutional neural network can reconstruct sharp retinal fundus images from synthetically blurred inputs. If it can, we can automate and improve retinal disease detection effectively. One particular condition that comes to mind is diabetic retinopathy.
 
 
-![Retinal Deblurring Results](retinal_fundus_image_grayscale.jpg) ![Retinal Deblurring Results](retinal_grayscale_deblurred.jpg)
+<h3 align="center">Deconvolution Results (Before vs After)</h3>
+
+<table align="center">
+  <!-- Columns Headers -->
+  <thead>
+    <tr>
+      <th width="50%">Input Image</th>
+      <th width="50%">Deblurred Output</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Row 1: Sample Case 01 -->
+    <tr>
+      <td><img src="retinal_fundus_image_grayscale.jpg" width="100%" alt="Blurry 1"></td>
+      <td><img src="retinal_grayscale_deblurred.jpg" width="100%" alt="Restored 1"></td>
+    </tr>
+    <!-- Row 2: Sample Case 02 -->
+    <tr>
+      <td><img src="retinal_fundus_image_greenscale.png" width="100%" alt="Blurry 2"></td>
+      <td><img src="retinal_greenscale_deblurred.jpg" width="100%" alt="Restored 2"></td>
+    </tr>
+    <!-- Row 3: Sample Case 03 -->
+    <tr>
+      <td><img src="retinal_fundus_image_rgb.png" width="100%" alt="Blurry 3"></td>
+      <td><img src="retinal_rgb_deblurred.jpg" width="100%" alt="Restored 3"></td>
+    </tr>
+  </tbody>
+</table>
 
 
 ## Background:
