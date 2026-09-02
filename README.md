@@ -2,15 +2,13 @@
 An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture enhanced with a model function tailored to retinal anatomical features. This project investigates whether a convolutional neural network can reconstruct sharp retinal fundus images from synthetically blurred inputs. If it can, we can automate and improve retinal disease detection effectively. One particular condition that comes to mind is diabetic retinopathy.
 
 ## Background:
-Retinal image of an eye is blurry due to the eye’s vision issues (nearsightedness, farsightedness, some other kind of myopia) or things like patients moving or a blurry camera. Poor image quality can reduce diagnostic accuracy and causes inconveniences. This project explores whether deep learning can automatically recover sharp retinal images from blurred observations.
+Retinal images can be blurry due to factors like camera focus, ocular aberrations, and imaging limitations. Improper image quality can reduce diagnostic accuracy and causes inconveniences. This project explores whether deep learning can automatically recover sharp retinal images from blurred observations.
 
 ## Objective:
-To train a deep neural network capable of learning the inverse mapping from blurred retinal images to their corresponding sharp images. Instead of manually estimating the source of blur, this project formulates blind deconvolution as an image-to-image translation problem using supervised learning.
+The current implementation evaluates reconstruction from synthetically blurred retinal images. Performance on real-world optical and motion blur is a valid question; my project can reconstruct the quality of retinal images irrespective of the source of blur.
 
-## Blind deconvolution:
-We can do deconvolution while being blind to the cause of the blur.
-
-I2I translation: mapping input images to desired output images (both are given)
+## Operation Procedure / Methodology:
+Although the underlying blur kernel is unknown, the network is trained in a supervised image-to-image framework using paired sharp and synthetically blurred images. At inference time, the blur kernel does not need to be explicitly estimated.
 
 ## Model Architecture:
 
@@ -18,11 +16,10 @@ U-Net – encoder → bottleneck → decoder → skip connections
 
 Loss functions: Anatomical Priority Loss --> combines global pixel error with a localized 2D Laplacian convolution filter.
 
-Post-Processing: Integrated a localized Contrast-Limited Adaptive Histogram Equalization (CLAHE) pass to strongly sharpen blood vessel clarity after deconvolution
+Post-processing: Applied localized Contrast-Limited Adaptive Histogram Equalization (CLAHE) to enhance local contrast and improve the visibility of retinal blood vessels
 
- 
 
-I changed the training specs until it was such that each batch was 4 images and each epoch had 250 batches, which means my model focuses on 1000 images at a time. After training for just 3 epochs, my model could recover blood vessels and other retinal features in crystal clear fashion. I stopped at 3 epochs due to the law of diminishing returns: the visual improvements I get from further training will exponentially decrease. There is a certain "sweet spot" where it deblurs almost completely, but just enough where further training will be better at wasting time instead of making nonnegligible improvements.
+Training was configured with a batch size of 4 and 250 batches per epoch, resulting in 1,000 training samples being processed per epoch. After training for just 3 epochs, my model could recover blood vessels and other retinal features completely. After 3 epochs, additional training produced diminishing visual improvements in my experiments, so I stopped training at this point.
 
 ## Core Logic:
 We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
