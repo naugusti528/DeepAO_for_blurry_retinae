@@ -32,16 +32,16 @@ An end-to-end deep learning project exploring blind image deconvolution for reti
 </table>
 
 
-## Background:
+## Background
 Retinal images can be blurry due to factors like camera focus, ocular aberrations, and imaging limitations. Improper image quality can reduce diagnostic accuracy and causes inconveniences. This project explores whether deep learning can automatically recover sharp retinal images from blurred observations.
 
-## Objective:
+## Objective
 The current implementation evaluates reconstruction from synthetically blurred retinal images. Performance on real-world optical and motion blur is a valid question; my project can reconstruct the quality of retinal images irrespective of the source of blur.
 
-## Operation Procedure / Methodology:
+## Operation Procedure / Methodology
 Although the underlying blur kernel is unknown, the network is trained in a supervised image-to-image framework using paired sharp and synthetically blurred images. At inference time, the blur kernel does not need to be explicitly estimated. The full stack application processes input images such that the output images are strictly greenscale; the color selection is intentional, and is the color channel used by doctors to accurately examine retinal images.
 
-## Model Architecture:
+## Model Architecture
 
 U-Net – encoder → bottleneck → decoder → skip connections
 
@@ -52,7 +52,7 @@ Post-processing: Applied localized Contrast-Limited Adaptive Histogram Equalizat
 
 Training was configured with a batch size of 4 and 250 batches per epoch, resulting in 1,000 training samples being processed per epoch. After training for just 3 epochs, my model could recover blood vessels and other retinal features completely. After 3 epochs, additional training produced diminishing visual improvements in my experiments, so I stopped training at this point.
 
-## Core Logic:
+## Core Logic
 We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
 
 ## Data Specifications
