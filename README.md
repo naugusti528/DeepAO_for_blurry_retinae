@@ -73,10 +73,23 @@ The Kaggle dataset used for this project is 22 GB and is excluded via the .gitig
 The name of the dataset is "Eyepacs, Aptos, Messidor Diabetic Retinopathy" and it was created by Abdullah S. Canipek et al. under the username ascanipek.<br>
 
 ## Usage
-To run this project locally, <br>
+To run this project locally, download it here:<br>
+[![Download Application](https://shields.io)](https://github.com/naugusti528/DeepAO_for_blurry_retinae/releases/download/RetinalDeconvolution_v1.0/DeepAO_Retinal_Restoration.zip)
 
-This downloads the data as a zipfile. To unzip it, run:<br>
-unzip data/raw/eyepacs-aptos-messidor-diabetic-retinopathy.zip -d data/raw/extracted_images<br>
+After you've downloaded the project onto your computer, go to your terminal, access the root directory of this project, and enter this:<br>
+```text
+pip install -r requirements.txt
+```
+...after which you can launch the web engine with:<br>
+```text
+python3 app.py
+```
+There will be a URL shown after you run this command:<br>
+```text
+http://127.0.0.1:5001
+```
+Paste that link into a new tab on your web browser; and now you have access to my project.<br>
+
 
 ## Repository Structure
 ```text
