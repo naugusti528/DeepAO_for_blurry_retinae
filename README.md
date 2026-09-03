@@ -45,12 +45,30 @@ Although the underlying blur kernel is unknown, the network is trained in a supe
 
 U-Net – encoder → bottleneck → decoder → skip connections
 
-Loss functions: Anatomical Priority Loss --> combines global pixel error with a localized 2D Laplacian convolution filter.
+Loss functions: Anatomical Priority Loss --> combines anatomical feature extraction with a localized 2D Laplacian convolution filter
+
+Evaluation metrics: SSIM, PSNR
 
 Post-processing: Applied localized Contrast-Limited Adaptive Histogram Equalization (CLAHE) to enhance local contrast and improve the visibility of retinal blood vessels
 
 
-Training was configured with a batch size of 4 and 250 batches per epoch, resulting in 1,000 training samples being processed per epoch. After training for just 3 epochs, my model could recover blood vessels and other retinal features completely. After 3 epochs, additional training produced diminishing visual improvements in my experiments, so I stopped training at this point.
+Training was configured with a batch size of 4 and 250 batches per epoch, resulting in 1,000 training samples being processed per epoch. After three epochs, the model demonstrated substantial visual recovery of retinal vascular structures in the evaluation samples. Additional training produced diminishing visual improvements in my experiments, so training was stopped at this point.
+
+Optimizer: Adam
+Learning rate: 1e-4 (0.0001)
+Framework: PyTorch
+Hardware: Apple Silicon GPU (MPS Acceleration)
+
+## Workflow / Pipeline
+1. Fundus Image
+2. Greenscale, resized to 512x512, synthetic Gaussian blurring added via 15x15 kernel
+3. Model trained on deblurring synthetically blurred images via U-Net architecture
+4. Loss function is custom, prioritizes retina anatomy, enhanced with 2D Laplacian filter
+5. Web interface for uploading any retinal image (greenscale, grayscale, RGB, etc.)
+6. Input image converted to greenscale before deblurring; post-processing handled by CLAHE*
+8. Blurred image restored in greenscale
+
+*CLAHE --> Contrast Limited Adaptive Histogram Equalization
 
 ## Core Logic
 We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
@@ -67,3 +85,22 @@ kaggle datasets download -d ascanipek/eyepacs-aptos-messidor-diabetic-retinopath
 This downloads the data as a zipfile. To unzip it, run:
 
 unzip data/raw/eyepacs-aptos-messidor-diabetic-retinopathy.zip -d data/raw/extracted_images
+
+## Repository Structure
+DeepAO_for_blurry_retinae/
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── web_uploads/
+├── models/
+│   └── unet_anatomical_sliding_epoch_3.pth
+├── src/
+│   ├── simulator.py
+│   ├── model.py
+│   ├── data_loader.py
+│   ├── train.py
+│   └── evaluate.py
+├── templates/
+│   └── index.html
+├── app.py
+└── README.md
