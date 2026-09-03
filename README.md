@@ -42,7 +42,6 @@ The current implementation evaluates reconstruction from synthetically blurred r
 Although the underlying blur kernel is unknown, the network is trained in a supervised image-to-image framework using paired sharp and synthetically blurred images. At inference time, the blur kernel does not need to be explicitly estimated. The full stack application processes input images such that the output images are strictly greenscale; the color selection is intentional, and is the color channel used by doctors to accurately examine retinal images.
 
 ## Model Architecture
-```text
 U-Net – encoder → bottleneck → decoder → skip connections
 Loss functions: Anatomical Priority Loss --> combines anatomical feature extraction with a localized 2D Laplacian convolution filter
 Evaluation metrics: SSIM, PSNR
@@ -54,7 +53,6 @@ Optimizer: Adam
 Learning rate: 1e-4 (0.0001)
 Framework: PyTorch
 Hardware: Apple Silicon GPU (MPS Acceleration)
-```
 
 ## Workflow / Pipeline
 1. Fundus Image
@@ -71,19 +69,15 @@ Hardware: Apple Silicon GPU (MPS Acceleration)
 We have y = k*x + n, where x is the ground truth (original image), y is the observed blurred image, k is the point spread function, and n is noise. We are given y, and we must derive x.
 
 ## Data Specifications
-```text
 The Kaggle dataset used for this project is 22 GB and is excluded via the .gitignore to maintain a lightweight and fast codebase.
 The name of the dataset is "Eyepacs, Aptos, Messidor Diabetic Retinopathy" and it was created by Abdullah S. Canipek et al. under the username ascanipek.
-```
 
 ## Usage
-```text
 To run this project locally, use the following command to download the dataset onto your computer's local terminal:
 kaggle datasets download -d ascanipek/eyepacs-aptos-messidor-diabetic-retinopathy -p data/raw
 
 This downloads the data as a zipfile. To unzip it, run:
 unzip data/raw/eyepacs-aptos-messidor-diabetic-retinopathy.zip -d data/raw/extracted_images
-```
 
 ## Repository Structure
 ```text
