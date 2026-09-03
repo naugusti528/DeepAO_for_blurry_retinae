@@ -73,8 +73,7 @@ The Kaggle dataset used for this project is 22 GB and is excluded via the .gitig
 The name of the dataset is "Eyepacs, Aptos, Messidor Diabetic Retinopathy" and it was created by Abdullah S. Canipek et al. under the username ascanipek.<br>
 
 ## Usage
-To run this project locally, use the following command to download the dataset onto your computer's local terminal:<br>
-kaggle datasets download -d ascanipek/eyepacs-aptos-messidor-diabetic-retinopathy -p data/raw<br>
+To run this project locally, <br>
 
 This downloads the data as a zipfile. To unzip it, run:<br>
 unzip data/raw/eyepacs-aptos-messidor-diabetic-retinopathy.zip -d data/raw/extracted_images<br>
