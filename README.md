@@ -1,5 +1,5 @@
 # ML-based Adaptive Optics for Deblurring Retinae
-An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture enhanced with a model function tailored to retinal anatomical features. This project investigates whether a convolutional neural network can reconstruct sharp retinal fundus images from synthetically blurred inputs. If it can, we can automate and improve retinal disease detection effectively. One particular condition that comes to mind is diabetic retinopathy.
+An end-to-end deep learning project exploring blind image deconvolution for retinal imaging using a U-Net architecture enhanced with a model function tailored to retinal anatomical features. Here we investigate whether a convolutional neural network can reconstruct retinal features from blurred fundus images.
 
 
 <h3 align="center">Deconvolution Results (Before vs After)</h3>
